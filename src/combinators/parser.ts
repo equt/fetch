@@ -2,11 +2,11 @@ import { mapLeft } from 'fp-ts/Either'
 import type { Json } from 'fp-ts/Json'
 import { chainEitherKW, chainTaskEitherKW } from 'fp-ts/ReaderTaskEither'
 import { tryCatch } from 'fp-ts/TaskEither'
-import type { Lazy } from 'fp-ts/function'
 import { flow } from 'fp-ts/function'
 
 import type { Errors, Mixed, TypeOf } from 'io-ts'
 
+import type { Lazyable } from '../utils'
 import { bail, Combinator, MapError } from '..'
 import { eager } from '../utils'
 import { withHeaders } from './header'
@@ -40,14 +40,14 @@ export function asJSON<E, F>(
  * @since 1.0.0
  */
 export function asBlob<E, F>(
-  accept: string | Lazy<string>,
+  accept: Lazyable<string>,
   mapError: MapError<F>,
 ): Combinator<E, Response, E | F, Blob>
 export function asBlob<E>(
-  accept: string | Lazy<string>,
+  accept: Lazyable<string>,
 ): Combinator<E, Response, E, Blob>
 export function asBlob<E, F>(
-  accept: Lazy<string> | string,
+  accept: Lazyable<string>,
   mapError: MapError<F> = bail,
 ): Combinator<E, Response, E | F, Blob> {
   return flow(
@@ -85,14 +85,14 @@ export function asText<E, F>(
  * @since 2.5.0
  */
 export function decodeAs<E, F, C extends Mixed>(
-  codeC: C | Lazy<C>,
+  codeC: Lazyable<C>,
   mapError: MapError<F, Errors>,
 ): Combinator<E, Json, E | F, TypeOf<C>>
 export function decodeAs<E, C extends Mixed>(
-  codeC: C | Lazy<C>,
+  codeC: Lazyable<C>,
 ): Combinator<E, Json, E, TypeOf<C>>
 export function decodeAs<E, F, C extends Mixed>(
-  codeC: C | Lazy<C>,
+  codeC: Lazyable<C>,
   mapError: MapError<F, Errors> = bail,
 ): Combinator<E, Json, E | F, TypeOf<C>> {
   return chainEitherKW(flow(eager(codeC).decode, mapLeft(mapError)))
