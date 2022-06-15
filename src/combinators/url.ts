@@ -1,7 +1,7 @@
 import { local } from 'fp-ts/ReaderTaskEither'
 import { mapSnd } from 'fp-ts/Tuple'
-import type { Lazy } from 'fp-ts/function'
 
+import type { Lazyable } from '../utils'
 import type { Combinator, MapError } from '..'
 import { bail } from '..'
 import { eager } from '../utils'
@@ -17,14 +17,12 @@ type MaybeURLLike = URL | string | undefined
  * @since 1.0.0
  */
 export function withBaseURL<E, F, A>(
-  url: MaybeURLLike | Lazy<MaybeURLLike>,
+  url: Lazyable<MaybeURLLike>,
   mapError: MapError<F>,
 ): Combinator<E, A, E | F>
-export function withBaseURL<E, A>(
-  url: MaybeURLLike | Lazy<MaybeURLLike>,
-): Combinator<E, A>
+export function withBaseURL<E, A>(url: Lazyable<MaybeURLLike>): Combinator<E, A>
 export function withBaseURL<E, F, A>(
-  url: MaybeURLLike | Lazy<MaybeURLLike>,
+  url: Lazyable<MaybeURLLike>,
   mapError: MapError<F> = bail,
 ): Combinator<E, A, E | F> {
   return local(
@@ -47,7 +45,7 @@ export function withBaseURL<E, F, A>(
  * @since 2.0.0
  */
 export const withURLSearchParams = <E, A>(
-  params: Record<string, string> | Lazy<Record<string, string>>,
+  params: Lazyable<Record<string, string>>,
 ): Combinator<E, A> => {
   type ExtendedRequestInit = RequestInit & {
     _URL_SEARCH_PARAMS?: Record<string, string>
