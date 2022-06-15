@@ -1,8 +1,8 @@
 import { local } from 'fp-ts/ReaderTaskEither'
 import { mapSnd } from 'fp-ts/Tuple'
-import type { Lazy } from 'fp-ts/function'
 
 import type { Combinator } from '..'
+import type { Lazyable } from '../utils'
 import { eager } from '../utils'
 
 /**
@@ -47,7 +47,7 @@ export const merge = (into: HeadersInit, from: HeadersInit): HeadersInit => ({
  * @since 1.0.0
  */
 export const withHeaders = <E, A>(
-  headers: HeadersInit | Lazy<HeadersInit>,
+  headers: Lazyable<HeadersInit>,
 ): Combinator<E, A> =>
   local(
     mapSnd(x => ({ headers: merge(eager(headers), x.headers ?? {}), ...x })),
