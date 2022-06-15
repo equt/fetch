@@ -1,8 +1,8 @@
-import type { Lazy } from 'fp-ts/function'
 import { chain, chainFirst, local, rightIO } from 'fp-ts/ReaderTaskEither'
 import { mapSnd } from 'fp-ts/Tuple'
 import { pipe } from 'fp-ts/function'
 
+import type { Lazyable } from '../utils'
 import { bail, Combinator, MapError } from '..'
 import { eager } from '../utils'
 
@@ -15,14 +15,14 @@ import { eager } from '../utils'
  * @since 1.0.0
  */
 export function withSignal<E, A, F>(
-  signal: Lazy<AbortSignal> | AbortSignal,
+  signal: Lazyable<AbortSignal>,
   mapError: MapError<F>,
 ): Combinator<E, A, E | F>
 export function withSignal<E, A>(
-  signal: Lazy<AbortSignal> | AbortSignal,
+  signal: Lazyable<AbortSignal>,
 ): Combinator<E, A>
 export function withSignal<E, A, F>(
-  signal: Lazy<AbortSignal> | AbortSignal,
+  signal: Lazyable<AbortSignal>,
   mapError: MapError<F> = bail,
 ): Combinator<E, A, E | F> {
   // How could this even be possible? See the impl details of `mkRequest`
@@ -40,14 +40,14 @@ export function withSignal<E, A, F>(
  * @since 1.0.0
  */
 export function withTimeout<E, A, F>(
-  milliseconds: Lazy<number> | number,
+  milliseconds: Lazyable<number>,
   mapError: MapError<F>,
 ): Combinator<E, A, E | F>
 export function withTimeout<E, A>(
-  milliseconds: Lazy<number> | number,
+  milliseconds: Lazyable<number>,
 ): Combinator<E, A>
 export function withTimeout<E, A, F>(
-  milliseconds: Lazy<number> | number,
+  milliseconds: Lazyable<number>,
   mapError: MapError<F> = bail,
 ): Combinator<E, A, E | F> {
   return m => {
