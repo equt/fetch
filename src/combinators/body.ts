@@ -1,10 +1,10 @@
 import type { Json } from 'fp-ts/Json'
 import { local } from 'fp-ts/ReaderTaskEither'
 import { mapSnd } from 'fp-ts/Tuple'
-import type { Lazy } from 'fp-ts/function'
 import { flow } from 'fp-ts/function'
 
 import type { Combinator } from '..'
+import type { Lazyable } from '../utils'
 import { eager } from '../utils'
 import { withHeaders } from './header'
 
@@ -63,9 +63,7 @@ export const collectFormable = (form: FormData): Formable => {
  *
  * @since 2.1.0
  */
-export const withForm = <E, A>(
-  form: Formable | Lazy<Formable>,
-): Combinator<E, A> =>
+export const withForm = <E, A>(form: Lazyable<Formable>): Combinator<E, A> =>
   local(
     mapSnd(({ body, ...rest }) => {
       const _form = eager(form)
@@ -100,7 +98,7 @@ export const withForm = <E, A>(
  * @since 1.0.0
  */
 export const withJSONBody = <E, A>(
-  json: Json | Lazy<Json>,
+  json: Lazyable<Json>,
   replacer?: (
     this: unknown,
     key: string,
@@ -125,7 +123,7 @@ export const withJSONBody = <E, A>(
  * @since 1.0.0
  */
 export const withJSON = <E, A>(
-  json: Json | Lazy<Json>,
+  json: Lazyable<Json>,
   replacer?: (
     this: unknown,
     key: string,
@@ -147,7 +145,7 @@ export const withJSON = <E, A>(
  * @since 1.0.0
  */
 export const withBlob = <E extends Error, A>(
-  blob: Blob | Lazy<Blob>,
+  blob: Lazyable<Blob>,
   contentType: string,
 ): Combinator<E, A> =>
   flow(
