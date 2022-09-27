@@ -1,3 +1,6 @@
+/**
+ * @since 1.0.0
+ */
 import type { Predicate } from 'fp-ts/Predicate'
 import { pipe } from 'fp-ts/function'
 

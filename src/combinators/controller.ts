@@ -1,3 +1,6 @@
+/**
+ * @since 1.0.0
+ */
 import { chain, chainFirst, local, rightIO } from 'fp-ts/ReaderTaskEither'
 import { mapSnd } from 'fp-ts/Tuple'
 import { pipe } from 'fp-ts/function'

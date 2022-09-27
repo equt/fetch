@@ -1,3 +1,6 @@
+/**
+ * @since 1.0.0
+ */
 import { mapLeft } from 'fp-ts/Either'
 import type { Json } from 'fp-ts/Json'
 import { chainEitherKW, chainTaskEitherKW } from 'fp-ts/ReaderTaskEither'

@@ -5,6 +5,7 @@
   "main": "./dist/index.cjs",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
+  "homepage": "https://github.com/equt/fetch",
   "exports": {
     ".": {
       "require": "./dist/index.cjs",
@@ -15,16 +16,8 @@
   "publishConfig": {
     "access": "public"
   },
-  "keywords": [
-    "fp-ts",
-    "fetch",
-    "HTTP"
-  ],
-  "files": [
-    "README.md",
-    "LICENSE.md",
-    "dist"
-  ],
+  "keywords": ["fp-ts", "fetch", "HTTP"],
+  "files": ["README.md", "LICENSE.md", "dist"],
   "packageManager": "pnpm@7.1.8",
   "sideEffects": false,
   "scripts": {
@@ -45,6 +38,7 @@
     "@types/jest": "^28.1.1",
     "cross-fetch": "^3.1.5",
     "cspell": "^6.1.1",
+    "docs-ts": "^0.6.10",
     "eslint": "^8.17.0",
     "fetch-mock-jest": "^1.5.1",
     "fp-ts": "2.12.1",
@@ -71,18 +65,13 @@
   "eslintConfig": {
     "extends": "@equt"
   },
-  "eslintIgnore": [
-    "node_modules",
-    "coverage"
-  ],
+  "eslintIgnore": ["node_modules", "coverage"],
   "jest": {
     "preset": "ts-jest",
     "testEnvironment": "jsdom"
   },
   "unbuild": {
-    "entries": [
-      "src/index"
-    ],
+    "entries": ["src/index"],
     "clean": true,
     "declaration": true,
     "rollup": {
@@ -112,8 +101,6 @@
     ]
   },
   "commitlint": {
-    "extends": [
-      "@commitlint/config-conventional"
-    ]
+    "extends": ["@commitlint/config-conventional"]
   }
 }

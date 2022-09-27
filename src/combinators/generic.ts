@@ -1,3 +1,6 @@
+/**
+ * @since 2.1.1
+ */
 import type { Refinement } from 'fp-ts/Refinement'
 import type { Either } from 'fp-ts/Either'
 import { left as leftE, right as rightE } from 'fp-ts/Either'

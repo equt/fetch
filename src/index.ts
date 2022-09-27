@@ -1,3 +1,6 @@
+/**
+ * @since 1.0.0
+ */
 import { match } from 'fp-ts/Either'
 import type { ReaderTaskEither } from 'fp-ts/ReaderTaskEither'
 import type { TaskEither } from 'fp-ts/TaskEither'
