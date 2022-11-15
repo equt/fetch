@@ -58,6 +58,24 @@ export function asBlob<E, F>(
 }
 
 /**
+ * Parse the `Response` body as `ArrayBuffer`
+ *
+ * @param mapError An instance of {@link MapError}
+ *
+ * @category combinators
+ * @since 3.4.0
+ */
+export function asArrayBuffer<E, F>(
+  mapError: MapError<F>,
+): Combinator<E, Response, E | F, ArrayBuffer>
+export function asArrayBuffer<E>(): Combinator<E, Response, E, ArrayBuffer>
+export function asArrayBuffer<E, F>(
+  mapError: MapError<F> = bail,
+): Combinator<E, Response, E | F, ArrayBuffer> {
+  return chainTaskEitherKW(resp => tryCatch(() => resp.arrayBuffer(), mapError))
+}
+
+/**
  * Parse the `Response` body as `string`
  *
  * @param mapError An instance of {@link MapError}

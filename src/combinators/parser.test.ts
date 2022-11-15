@@ -6,7 +6,7 @@ import mock from 'fetch-mock-jest'
 import * as t from 'io-ts'
 
 import { request, runFetchM } from '..'
-import { asBlob, asJSON, asText, decodeAs } from './parser'
+import { asBlob, asArrayBuffer, asJSON, asText, decodeAs } from './parser'
 
 afterEach(() => mock.reset())
 
@@ -76,6 +76,16 @@ describe('Blob Parser Combinator', () => {
         Accept: 'application/pdf',
       },
     })
+  })
+})
+
+describe('ArrayBuffer Parser Combinator', () => {
+  it('should be able to parse ArrayBuffer', async () => {
+    mock.mock('https://example.com', new Response(new ArrayBuffer(10)))
+
+    expect(await pipe(request, asArrayBuffer(), mk)()).toStrictEqual(
+      expect.objectContaining({ _tag: 'Right' }),
+    )
   })
 })
 
