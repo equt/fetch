@@ -1,8 +1,7 @@
 import { pipe } from 'fp-ts/function'
+import { left } from 'fp-ts/Either'
 
-import mock from 'fetch-mock-jest'
-
-import { request, runFetchM } from '..'
+import { bail, mkRequest, runFetchM } from '..'
 import {
   withBaseURL,
   withPassword,
@@ -11,61 +10,52 @@ import {
   withUsername,
 } from './url'
 
-// FIXME URL doesn't throw if invalid
-
-afterEach(() => mock.reset())
+const mock = jest.fn(() => Promise.resolve(new Response())),
+  request = mkRequest(bail, mock)
 
 describe('Base URL combinator', () => {
   it('should add the base URL', async () => {
-    mock.mock('https://example.com/wait', 200)
     await pipe(
       request,
       withBaseURL('https://example.com'),
       runFetchM('/wait'),
     )()
-    expect(mock.lastUrl()).toStrictEqual('https://example.com/wait')
+    expect(mock.mock.lastCall).toEqual(['https://example.com/wait', {}])
   })
 
   it('latter should overwrite the former', async () => {
-    mock.mock('https://example.com/wait', 200)
     await pipe(
       request,
       withBaseURL('https://example.org'),
       withBaseURL('https://example.com'),
       runFetchM('/wait'),
     )()
-    expect(mock.lastUrl()).toStrictEqual('https://example.com/wait')
+    expect(mock.mock.lastCall).toEqual(['https://example.com/wait', {}])
   })
 
-  // it('should throws if URL is invalid', async () => {
-  //   expect(
-  //     await pipe(
-  //       mkRequest(() => 'InternalError', realFetch),
-  //       withBaseURL('https://*', () => 'InternalError'),
-  //       runFetchM('/wait')
-  //     )()
-  //   ).toStrictEqual(left('InternalError'))
-  // })
+  it('should throws if URL is invalid', async () => {
+    await expect(
+      pipe(
+        request,
+        withBaseURL('https://foo%20bar', () => 'InternalError'),
+        runFetchM('/wait'),
+      )(),
+    ).resolves.toEqual(left('InternalError'))
+  })
 })
 
 describe('URL Parameters Combinator', () => {
   it('should set URL Parameters', async () => {
-    mock.mock('https://example.com?wait=always', 200)
-
     await pipe(
       request,
       withURLSearchParams({ wait: 'always' }),
       runFetchM('https://example.com'),
     )()
 
-    expect(mock.lastCall()?.[0]).toStrictEqual(
-      'https://example.com/?wait=always',
-    )
+    expect(mock.mock.lastCall).toEqual(['https://example.com/?wait=always', {}])
   })
 
   it('latter combinator should take precedence', async () => {
-    mock.mock('https://example.com?wait=always&has=been', 200)
-
     await pipe(
       request,
       withURLSearchParams({ wait: 'been', has: 'been' }),
@@ -73,14 +63,13 @@ describe('URL Parameters Combinator', () => {
       runFetchM('https://example.com'),
     )()
 
-    expect(mock.lastCall()?.[0]).toStrictEqual(
+    expect(mock.mock.lastCall).toEqual([
       'https://example.com/?wait=always&has=been',
-    )
+      {},
+    ])
   })
 
   it('should work well with `withBaseURL`, regardless the order (normal)', async () => {
-    mock.mock('https://example.com/orio?wait=always&has=been', 200)
-
     await pipe(
       request,
       withBaseURL('https://example.com/'),
@@ -88,14 +77,13 @@ describe('URL Parameters Combinator', () => {
       runFetchM('orio'),
     )()
 
-    expect(mock.lastCall()?.[0]).toStrictEqual(
+    expect(mock.mock.lastCall).toEqual([
       'https://example.com/orio?wait=always&has=been',
-    )
+      {},
+    ])
   })
 
   it('should work well with `withBaseURL`, regardless the order (reversed)', async () => {
-    mock.mock('https://example.com/orio?wait=always&has=been', 200)
-
     await pipe(
       request,
       withURLSearchParams({ wait: 'always', has: 'been' }),
@@ -103,28 +91,25 @@ describe('URL Parameters Combinator', () => {
       runFetchM('orio'),
     )()
 
-    expect(mock.lastCall()?.[0]).toStrictEqual(
+    expect(mock.mock.lastCall).toEqual([
       'https://example.com/orio?wait=always&has=been',
-    )
+      {},
+    ])
   })
 })
 
 describe('URL Password Combinator', () => {
   it('should set password', async () => {
-    mock.mock('https://:password@example.com', 200)
-
     await pipe(
       request,
       withPassword('password'),
       runFetchM('https://example.com'),
     )()
 
-    expect(mock.lastCall()?.[0]).toStrictEqual('https://:password@example.com/')
+    expect(mock.mock.lastCall).toEqual(['https://:password@example.com/', {}])
   })
 
   it('should override', async () => {
-    mock.mock('https://:password@example.com', 200)
-
     await pipe(
       request,
       withPassword('passwd'),
@@ -132,26 +117,22 @@ describe('URL Password Combinator', () => {
       runFetchM('https://example.com'),
     )()
 
-    expect(mock.lastCall()?.[0]).toStrictEqual('https://:password@example.com/')
+    expect(mock.mock.lastCall).toEqual(['https://:password@example.com/', {}])
   })
 })
 
 describe('URL Username Combinator', () => {
   it('should set username', async () => {
-    mock.mock('https://user@example.com', 200)
-
     await pipe(
       request,
       withUsername('user'),
       runFetchM('https://example.com'),
     )()
 
-    expect(mock.lastCall()?.[0]).toStrictEqual('https://user@example.com/')
+    expect(mock.mock.lastCall).toEqual(['https://user@example.com/', {}])
   })
 
   it('should override', async () => {
-    mock.mock('https://user@example.com', 200)
-
     await pipe(
       request,
       withUsername('admin'),
@@ -159,22 +140,18 @@ describe('URL Username Combinator', () => {
       runFetchM('https://example.com'),
     )()
 
-    expect(mock.lastCall()?.[0]).toStrictEqual('https://user@example.com/')
+    expect(mock.mock.lastCall).toEqual(['https://user@example.com/', {}])
   })
 })
 
 describe('URL Port Combinator', () => {
   it('should set port', async () => {
-    mock.mock('https://example.com:442', 200)
-
     await pipe(request, withPort(442), runFetchM('https://example.com'))()
 
-    expect(mock.lastCall()?.[0]).toStrictEqual('https://example.com:442/')
+    expect(mock.mock.lastCall).toEqual(['https://example.com:442/', {}])
   })
 
   it('should override', async () => {
-    mock.mock('https://example.com:442', 200)
-
     await pipe(
       request,
       withPort(80),
@@ -182,18 +159,16 @@ describe('URL Port Combinator', () => {
       runFetchM('https://example.com'),
     )()
 
-    expect(mock.lastCall()?.[0]).toStrictEqual('https://example.com:442/')
+    expect(mock.mock.lastCall).toEqual(['https://example.com:442/', {}])
   })
 
   it('should accept both string and number', async () => {
-    mock.mock('https://example.com:442', 200)
-
     await pipe(request, withPort('442'), runFetchM('https://example.com'))()
 
-    expect(mock.lastCall()?.[0]).toStrictEqual('https://example.com:442/')
+    expect(mock.mock.lastCall).toEqual(['https://example.com:442/', {}])
 
     await pipe(request, withPort(442), runFetchM('https://example.com'))()
 
-    expect(mock.lastCall()?.[0]).toStrictEqual('https://example.com:442/')
+    expect(mock.mock.lastCall).toEqual(['https://example.com:442/', {}])
   })
 })

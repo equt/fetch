@@ -1,25 +1,29 @@
 import { left, right } from 'fp-ts/Either'
 import { pipe } from 'fp-ts/function'
 
-import { Response } from 'cross-fetch'
-import mock from 'fetch-mock-jest'
 import * as t from 'io-ts'
+import { z } from 'zod'
 
-import { request, runFetchM } from '..'
-import { asBlob, asArrayBuffer, asJSON, asText, decodeAs } from './parser'
-
-afterEach(() => mock.reset())
+import { mkRequest, bail, runFetchM } from '..'
+import {
+  asBlob,
+  asArrayBuffer,
+  asJSON,
+  asText,
+  decodeAs,
+  decodeIO,
+  decodeZod,
+} from './parser'
 
 const mk = runFetchM('https://example.com')
 
 describe('JSON Parser combinator', () => {
   it('should be able to parse JSON', async () => {
-    mock.mock(
-      'https://example.com',
-      new Response(`{ "Earth": "Always Has Been" }`),
+    const mock = jest.fn(() =>
+      Promise.resolve(new Response(`{ "Earth": "Always Has Been" }`)),
     )
 
-    expect(await pipe(request, asJSON(), mk)()).toStrictEqual(
+    expect(await pipe(mkRequest(bail, mock), asJSON(), mk)()).toEqual(
       right({
         Earth: 'Always Has Been',
       }),
@@ -27,14 +31,13 @@ describe('JSON Parser combinator', () => {
   })
 
   it('should throws SyntaxError if JSON syntax invalid', async () => {
-    mock.mock(
-      'https://example.com',
-      new Response(`{ "Earth": "Always Has Been"`),
+    const mock = jest.fn(() =>
+      Promise.resolve(new Response(`{ "Earth": "Always Has Been"`)),
     )
 
     expect(
       await pipe(
-        request,
+        mkRequest(bail, mock),
         asJSON(() => 'InvalidSyntax'),
         mk,
       )(),
@@ -42,73 +45,81 @@ describe('JSON Parser combinator', () => {
   })
 
   it('should set Accept header correctly', async () => {
-    mock.mock('https://example.com', new Response(`{}`))
+    const mock = jest.fn(() =>
+      Promise.resolve(new Response(`{ "Earth": "Always Has Been" }`)),
+    )
 
-    await pipe(request, asJSON(), mk)()
+    await pipe(mkRequest(bail, mock), asJSON(), mk)()
 
-    expect(mock.lastCall()?.[1]).toStrictEqual({
-      headers: {
-        Accept: 'application/json',
+    expect(mock.mock.lastCall).toStrictEqual([
+      'https://example.com/',
+      {
+        headers: {
+          Accept: 'application/json',
+        },
       },
-    })
+    ])
   })
 })
 
 describe('Blob Parser Combinator', () => {
   it('should be able to parse Blob', async () => {
-    mock.mock(
-      'https://example.com',
-      new Response(new Blob([], { type: 'application/pdf' })),
+    const mock = jest.fn(() =>
+      Promise.resolve(new Response(new Blob([], { type: 'application/pdf' }))),
     )
 
-    expect(await pipe(request, asBlob('application/pdf'), mk)()).toStrictEqual(
-      expect.objectContaining({ _tag: 'Right' }),
-    )
+    expect(
+      await pipe(mkRequest(bail, mock), asBlob('application/pdf'), mk)(),
+    ).toStrictEqual(expect.objectContaining({ _tag: 'Right' }))
   })
 
   it('should set Accept header correctly', async () => {
-    mock.mock('https://example.com', 200)
+    const mock = jest.fn(() => Promise.resolve(new Response()))
 
-    await pipe(request, asBlob('application/pdf'), mk)()
+    await pipe(mkRequest(bail, mock), asBlob('application/pdf'), mk)()
 
-    expect(mock.lastCall()?.[1]).toStrictEqual({
-      headers: {
-        Accept: 'application/pdf',
+    expect(mock.mock.lastCall).toStrictEqual([
+      'https://example.com/',
+      {
+        headers: {
+          Accept: 'application/pdf',
+        },
       },
-    })
+    ])
   })
 })
 
 describe('ArrayBuffer Parser Combinator', () => {
   it('should be able to parse ArrayBuffer', async () => {
-    mock.mock('https://example.com', new Response(new ArrayBuffer(10)))
-
-    expect(await pipe(request, asArrayBuffer(), mk)()).toStrictEqual(
-      expect.objectContaining({ _tag: 'Right' }),
+    const mock = jest.fn(() =>
+      Promise.resolve(new Response(new ArrayBuffer(10))),
     )
+
+    expect(
+      await pipe(mkRequest(bail, mock), asArrayBuffer(), mk)(),
+    ).toStrictEqual(expect.objectContaining({ _tag: 'Right' }))
   })
 })
 
 describe('Text Parser Combinator', () => {
   it('should be able to parse text', async () => {
-    mock.mock('https://example.com', new Response(`Always Has Been`))
+    const mock = jest.fn(() => Promise.resolve(new Response(`Always Has Been`)))
 
-    expect(await pipe(request, asText(), mk)()).toStrictEqual(
+    expect(await pipe(mkRequest(bail, mock), asText(), mk)()).toStrictEqual(
       right('Always Has Been'),
     )
   })
 })
 
-describe('CodeC requiring io-ts', () => {
+describe('CodeC requiring io-ts [deprecated]', () => {
   it('should be able to decode', async () => {
-    mock.mock(
-      'https://example.com',
-      new Response(`{ "Earth": "Always Has Been" }`),
+    const mock = jest.fn(() =>
+      Promise.resolve(new Response(`{ "Earth": "Always Has Been" }`)),
     )
 
     expect(
       await pipe(
-        request,
+        mkRequest(bail, mock),
         asJSON(),
         decodeAs(
           t.type({
@@ -117,15 +128,15 @@ describe('CodeC requiring io-ts', () => {
         ),
         mk,
       )(),
-    ).toStrictEqual(right({ Earth: 'Always Has Been' }))
+    ).toEqual(right({ Earth: 'Always Has Been' }))
   })
 
   it('should be able to report', async () => {
-    mock.mock('https://example.com', new Response(`{ "Earth": 42 }`))
+    const mock = jest.fn(() => Promise.resolve(new Response(`{ "Earth": 42 }`)))
 
     expect(
       await pipe(
-        request,
+        mkRequest(bail, mock),
         asJSON(),
         decodeAs(
           t.type({
@@ -136,5 +147,95 @@ describe('CodeC requiring io-ts', () => {
         mk,
       )(),
     ).toStrictEqual(left(['.Earth']))
+  })
+})
+
+describe('CodeC requiring io-ts', () => {
+  it('should be able to decode', async () => {
+    const mock = jest.fn(() =>
+      Promise.resolve(
+        new Response(`{ "Earth": "Always Has Been" }`, {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }),
+      ),
+    )
+
+    expect(
+      await pipe(
+        mkRequest(bail, mock),
+        asJSON(),
+        decodeIO(
+          t.type({
+            Earth: t.string,
+          }),
+        ),
+        mk,
+      )(),
+    ).toEqual(right({ Earth: 'Always Has Been' }))
+  })
+
+  it('should be able to report', async () => {
+    const mock = jest.fn(() => Promise.resolve(new Response(`{ "Earth": 42 }`)))
+
+    expect(
+      await pipe(
+        mkRequest(bail, mock),
+        asJSON(),
+        decodeIO(
+          t.type({
+            Earth: t.string,
+          }),
+          es => es.map(e => e.context.map(e => e.key).join('.')),
+        ),
+        mk,
+      )(),
+    ).toStrictEqual(left(['.Earth']))
+  })
+})
+
+describe('CodeC requiring zod', () => {
+  it('should be able to decode', async () => {
+    const mock = jest.fn(() =>
+      Promise.resolve(
+        new Response(`{ "Earth": "Always Has Been" }`, {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }),
+      ),
+    )
+
+    expect(
+      await pipe(
+        mkRequest(bail, mock),
+        asJSON(),
+        decodeZod(
+          z.object({
+            Earth: z.string(),
+          }),
+        ),
+        mk,
+      )(),
+    ).toEqual(right({ Earth: 'Always Has Been' }))
+  })
+
+  it('should be able to report', async () => {
+    const mock = jest.fn(() => Promise.resolve(new Response(`{ "Earth": 42 }`)))
+
+    expect(
+      await pipe(
+        mkRequest(bail, mock),
+        asJSON(),
+        decodeZod(
+          z.object({
+            Earth: z.string(),
+          }),
+          es => es.issues.map(e => e.path.join('.')),
+        ),
+        mk,
+      )(),
+    ).toStrictEqual(left(['Earth']))
   })
 })

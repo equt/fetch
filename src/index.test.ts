@@ -1,13 +1,9 @@
-import { left, right } from 'fp-ts/Either'
+import { right } from 'fp-ts/Either'
 import { pipe } from 'fp-ts/function'
-
-import { Response, fetch as realFetch } from 'cross-fetch'
-import mock from 'fetch-mock-jest'
 
 import {
   bail,
   mkRequest,
-  request,
   runFetchM,
   runFetchMFlipped,
   runFetchMFlippedP,
@@ -18,96 +14,109 @@ import {
   runFetchMPTL,
 } from '.'
 
-afterEach(() => mock.reset())
-
 describe('Plain request', () => {
-  it('should return a Response if succeeded', async () => {
+  it('could be executed by all methods', async () => {
     const resp = new Response('DATA', {
-      status: 200,
-      headers: {},
-    })
+        status: 200,
+        headers: {},
+      }),
+      mock = jest.fn(() => Promise.resolve(resp)),
+      request = mkRequest(bail, mock)
 
-    mock.mock('https://example.com', resp)
-
-    expect(
-      await pipe(request, runFetchM('https://example.com'))(),
-    ).toStrictEqual(right(resp))
-    expect(
-      await pipe(request, runFetchMP('https://example.com')),
-    ).toStrictEqual(right(resp))
-    expect(
-      await pipe(request, runFetchMPT('https://example.com')),
-    ).toStrictEqual(resp)
-    expect(
-      await pipe(request, runFetchMPTL('https://example.com'))(),
-    ).toStrictEqual(resp)
-    expect(
-      await pipe(request, runFetchMFlipped)('https://example.com')(),
-    ).toStrictEqual(right(resp))
-    expect(
-      await pipe(request, runFetchMFlippedP)('https://example.com'),
-    ).toStrictEqual(right(resp))
-    expect(
-      await pipe(request, runFetchMFlippedPT)('https://example.com'),
-    ).toStrictEqual(resp)
-    expect(
-      await pipe(request, runFetchMFlippedPTL)('https://example.com')(),
-    ).toStrictEqual(resp)
+    await Promise.all([
+      expect(
+        pipe(request, runFetchM('https://example.com'))(),
+      ).resolves.toEqual(right(resp)),
+      expect(pipe(request, runFetchMP('https://example.com'))).resolves.toEqual(
+        right(resp),
+      ),
+      expect(
+        pipe(request, runFetchMPT('https://example.com')),
+      ).resolves.toEqual(resp),
+      expect(
+        pipe(request, runFetchMPTL('https://example.com'))(),
+      ).resolves.toEqual(resp),
+      expect(
+        pipe(request, runFetchMFlipped)('https://example.com')(),
+      ).resolves.toEqual(right(resp)),
+      expect(
+        pipe(request, runFetchMFlippedP)('https://example.com'),
+      ).resolves.toEqual(right(resp)),
+      expect(
+        pipe(request, runFetchMFlippedPT)('https://example.com'),
+      ).resolves.toEqual(resp),
+      expect(
+        pipe(request, runFetchMFlippedPTL)('https://example.com')(),
+      ).resolves.toEqual(resp),
+    ])
   })
 
-  it('should throw TypeError if config is malformed', async () => {
-    expect(
-      await pipe(
-        mkRequest(() => 'InternalError', realFetch),
-        runFetchM('https://*'),
-      )(),
-    ).toStrictEqual(left('InternalError'))
-    expect(
-      await pipe(
-        mkRequest(() => 'InternalError', realFetch),
-        runFetchMP('https://*'),
-      ),
-    ).toStrictEqual(left('InternalError'))
-    expect(
-      async () =>
-        await pipe(
-          mkRequest(() => 'InternalError', realFetch),
-          runFetchMPT('https://*'),
-        ),
-    ).rejects.toMatch('InternalError')
-    expect(
-      async () =>
-        await pipe(
-          mkRequest(() => 'InternalError', realFetch),
-          runFetchMPTL('https://*'),
-        )(),
-    ).rejects.toMatch('InternalError')
-    expect(
-      await pipe(
-        mkRequest(() => 'InternalError', realFetch),
-        runFetchMFlipped,
-      )('https://*')(),
-    ).toStrictEqual(left('InternalError'))
-    expect(
-      await pipe(
-        mkRequest(() => 'InternalError', realFetch),
-        runFetchMFlippedP,
-      )('https://*'),
-    ).toStrictEqual(left('InternalError'))
-    expect(
-      async () =>
-        await pipe(
-          mkRequest(() => 'InternalError', realFetch),
-          runFetchMFlippedPT,
-        )('https://*'),
-    ).rejects.toMatch('InternalError')
-    expect(
-      async () =>
-        await pipe(
-          mkRequest(() => 'InternalError', realFetch),
-          runFetchMFlippedPTL,
-        )('https://*')(),
-    ).rejects.toMatch('InternalError')
+  it('allows overwritting', async () => {
+    const resp = new Response('DATA', {
+        status: 200,
+        headers: {},
+      }),
+      mock = jest.fn(() => Promise.resolve(resp)),
+      request = mkRequest(bail, mock)
+
+    await Promise.all([
+      expect(
+        pipe(request, runFetchM('https://example.com', {}))(),
+      ).resolves.toEqual(right(resp)),
+      expect(
+        pipe(request, runFetchMP('https://example.com', {})),
+      ).resolves.toEqual(right(resp)),
+      expect(
+        pipe(request, runFetchMPT('https://example.com', {})),
+      ).resolves.toEqual(resp),
+      expect(
+        pipe(request, runFetchMPTL('https://example.com', {}))(),
+      ).resolves.toEqual(resp),
+      expect(
+        pipe(request, runFetchMFlipped)('https://example.com', {})(),
+      ).resolves.toEqual(right(resp)),
+      expect(
+        pipe(request, runFetchMFlippedP)('https://example.com', {}),
+      ).resolves.toEqual(right(resp)),
+      expect(
+        pipe(request, runFetchMFlippedPT)('https://example.com', {}),
+      ).resolves.toEqual(resp),
+      expect(
+        pipe(request, runFetchMFlippedPTL)('https://example.com', {})(),
+      ).resolves.toEqual(resp),
+    ])
+  })
+
+  it('should handle handle errors', async () => {
+    const mock = jest.fn(() => Promise.reject('Rejected')),
+      request = mkRequest(bail, mock)
+
+    await Promise.all([
+      expect(() =>
+        pipe(request, runFetchM('https://example.com'))(),
+      ).rejects.toThrow('Rejected'),
+      expect(() =>
+        pipe(request, runFetchMP('https://example.com')),
+      ).rejects.toThrow('Rejected'),
+      expect(() =>
+        pipe(request, runFetchMPT('https://example.com')),
+      ).rejects.toThrow('Rejected'),
+      expect(() =>
+        pipe(request, runFetchMPTL('https://example.com'))(),
+      ).rejects.toThrow('Rejected'),
+      expect(() =>
+        pipe(request, runFetchMFlipped)('https://example.com')(),
+      ).rejects.toThrow('Rejected'),
+      expect(() =>
+        pipe(request, runFetchMFlippedP)('https://example.com'),
+      ).rejects.toThrow('Rejected'),
+      expect(() =>
+        pipe(request, runFetchMFlippedPT)('https://example.com'),
+      ).rejects.toThrow('Rejected'),
+      expect(() =>
+        pipe(request, runFetchMFlippedPTL)('https://example.com')(),
+      ).rejects.toThrow('Rejected'),
+    ])
   })
 })
 

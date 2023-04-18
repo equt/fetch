@@ -1,41 +1,50 @@
 import { left } from 'fp-ts/Either'
 import { pipe } from 'fp-ts/function'
 
-import mock from 'fetch-mock-jest'
-
-import { request, runFetchM } from '..'
+import { bail, mkRequest, runFetchM } from '..'
 import { ensureStatus } from './status'
-
-afterEach(() => mock.reset())
 
 const mk = runFetchM('https://example.com')
 
 describe('Status Combinator', () => {
   it('should reject', async () => {
-    mock.mock('https://example.com', 400)
+    const mock = jest.fn(() =>
+      Promise.resolve(
+        new Response(null, {
+          status: 400,
+        }),
+      ),
+    )
+
     expect(
       await pipe(
-        request,
+        mkRequest(bail, mock),
         ensureStatus(
           n => n < 400,
           () => 'Bad Response',
         ),
         mk,
       )(),
-    ).toStrictEqual(left('Bad Response'))
+    ).toEqual(left('Bad Response'))
   })
 
   it('should bypass', async () => {
-    mock.mock('https://example.com', 200)
+    const mock = jest.fn(() =>
+      Promise.resolve(
+        new Response(null, {
+          status: 200,
+        }),
+      ),
+    )
     expect(
       await pipe(
-        request,
+        mkRequest(bail, mock),
         ensureStatus(
           n => n < 400,
           () => 'Bad Response',
         ),
         mk,
       )(),
-    ).toStrictEqual(expect.objectContaining({ _tag: 'Right' }))
+    ).toEqual(expect.objectContaining({ _tag: 'Right' }))
   })
 })

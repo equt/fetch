@@ -1,6 +1,3 @@
-/**
- * @since 1.0.0
- */
 import { match } from 'fp-ts/Either'
 import type { ReaderTaskEither } from 'fp-ts/ReaderTaskEither'
 import type { TaskEither } from 'fp-ts/TaskEither'
@@ -102,15 +99,14 @@ const buildBaseURL = /* #__PURE__ */ <E>(
     (init as ExtendedRequestInit)._BASE_URL_MAP_ERROR
     // N.B. _BASE_URL might be undefined
   ) {
-    // TODO Remove the internal data
+    const mapError = (init as ExtendedRequestInit)._BASE_URL_MAP_ERROR,
+      baseURL = (init as ExtendedRequestInit)._BASE_URL
+
+    delete (init as Partial<ExtendedRequestInit>)._BASE_URL_MAP_ERROR
+    delete (init as Partial<ExtendedRequestInit>)._BASE_URL
+
     return pipe(
-      tryCatch(
-        () =>
-          Promise.resolve(
-            new URL(input, (init as ExtendedRequestInit)._BASE_URL).href,
-          ),
-        (init as ExtendedRequestInit)._BASE_URL_MAP_ERROR,
-      ),
+      tryCatch(() => Promise.resolve(new URL(input, baseURL).href), mapError),
       map<string, Config>(s => [s, init]),
     )
   }
@@ -134,18 +130,22 @@ const buildURL = /* #__PURE__ */ (config: Readonly<Config>): Config => {
 
   if (init._URL_SEARCH_PARAMS) {
     url.search = new URLSearchParams(init._URL_SEARCH_PARAMS).toString()
+    delete init._URL_SEARCH_PARAMS
   }
 
   if (init._URL_PASSWORD) {
     url.password = init._URL_PASSWORD
+    delete init._URL_PASSWORD
   }
 
   if (init._URL_USERNAME) {
     url.username = init._URL_USERNAME
+    delete init._URL_USERNAME
   }
 
   if (init._URL_PORT) {
     url.port = init._URL_PORT.toString()
+    delete init._URL_PORT
   }
 
   return [url.href, init]
@@ -191,10 +191,14 @@ export const mkRequest = /* #__PURE__ */
                 e instanceof DOMException &&
                 e.name === 'AbortError'
               ) {
-                // We cast the error into `E` to satisfy the compiler, but we know we have set the correct
-                // error type in the combinator itself, so the error type union must contain the right
+                const mapError = (init as ExtendedRequestInit)._ABORT_MAP_ERROR
+
+                delete (init as Partial<ExtendedRequestInit>)._ABORT_MAP_ERROR
+
+                // We cast the error into `E` to make the compiler happy, since we have set the correct
+                // error type in the combinator itself, i.e., the error type union must contain the right
                 // type.
-                return (init as ExtendedRequestInit)._ABORT_MAP_ERROR(e) as E
+                return mapError(e) as E
               }
               return mapError(e)
             },
@@ -257,9 +261,7 @@ export const runFetchMPT = /* #__PURE__ */
   async (m: FetchM<E, A>) =>
     pipe(
       await m([input, init ?? {}])(),
-      match(e => {
-        throw e
-      }, identity),
+      match(bail, identity),
     )
 
 /**
@@ -278,9 +280,7 @@ export const runFetchMPTL = /* #__PURE__ */
   async () =>
     pipe(
       await m([input, init ?? {}])(),
-      match(e => {
-        throw e
-      }, identity),
+      match(bail, identity),
     )
 
 /**
@@ -325,9 +325,7 @@ export const runFetchMFlippedPT = /* #__PURE__ */
   async (input: string, init?: RequestInit) =>
     pipe(
       await m([input, init ?? {}])(),
-      match(e => {
-        throw e
-      }, identity),
+      match(bail, identity),
     )
 
 /**
@@ -345,9 +343,7 @@ export const runFetchMFlippedPTL = /* #__PURE__ */
   async () =>
     pipe(
       await m([input, init ?? {}])(),
-      match(e => {
-        throw e
-      }, identity),
+      match(bail, identity),
     )
 
 export * from './combinators'

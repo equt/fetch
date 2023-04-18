@@ -1,6 +1,3 @@
-/**
- * @since 1.0.0
- */
 import type { Json } from 'fp-ts/Json'
 import { local } from 'fp-ts/ReaderTaskEither'
 import { mapSnd } from 'fp-ts/Tuple'

@@ -1,12 +1,7 @@
 import { pipe } from 'fp-ts/function'
 
-import mock from 'fetch-mock-jest'
-
-import { request, runFetchM } from '..'
+import { bail, mkRequest, runFetchM } from '..'
 import { merge, toRecord, withHeaders } from './header'
-
-beforeEach(() => mock.mock('https://example.com', 200))
-afterEach(() => mock.reset())
 
 describe('Convert HeaderInit to Record<string, string>', () => {
   it('should satisfy identity', () => {
@@ -59,7 +54,10 @@ describe('Merge two HeaderInit and create a new one', () => {
   })
 })
 
-const mk = runFetchM('https://example.com')
+const mock = jest.fn(() => Promise.resolve(new Response())),
+  request = mkRequest(bail, mock),
+  mk = runFetchM('https://example.com'),
+  arg = () => (mock.mock.lastCall as [string, unknown] | undefined)?.[1]
 
 describe('Header combinator', () => {
   it('should set headers correctly', async () => {
@@ -69,7 +67,7 @@ describe('Header combinator', () => {
       mk,
     )()
 
-    expect(mock.lastCall()?.[1]).toStrictEqual({
+    expect(arg()).toStrictEqual({
       headers: {
         Authorization: 'BEARER ALWAYS_HAS_BEEN',
       },
@@ -85,7 +83,7 @@ describe('Header combinator', () => {
       }),
     )()
 
-    expect(mock.lastCall()?.[1]).toStrictEqual({
+    expect(arg()).toStrictEqual({
       headers: {
         Authorization: 'BEARER ALWAYS_HAS_BEEN',
       },
@@ -100,7 +98,7 @@ describe('Header combinator', () => {
       mk,
     )()
 
-    expect(mock.lastCall()?.[1]).toStrictEqual({
+    expect(arg()).toStrictEqual({
       headers: {
         Authorization: 'BEARER ALWAYS_HAS_BEEN',
       },

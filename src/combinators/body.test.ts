@@ -1,13 +1,13 @@
 import { pipe } from 'fp-ts/function'
 
-import mock from 'fetch-mock-jest'
-
-import { request, runFetchM } from '..'
+import { bail, mkRequest, runFetchM } from '..'
 import { mkFormData, withBlob, withForm, withJSON } from './body'
 import { withMethod } from './method'
 
-beforeEach(() => mock.mock('https://example.com', 200))
-afterEach(() => mock.reset())
+const mock = jest.fn(() => Promise.resolve(new Response())),
+  request = mkRequest(bail, mock),
+  mk = runFetchM('https://example.com'),
+  arg = () => (mock.mock.lastCall as [string, unknown] | undefined)?.[1]
 
 describe('Create FormData', () => {
   it('build from Formable', () => {
@@ -29,8 +29,6 @@ describe('Create FormData', () => {
   })
 })
 
-const mk = runFetchM('https://example.com')
-
 describe('JSON body combinator', () => {
   it('should encode JSON & set header', async () => {
     await pipe(
@@ -40,7 +38,7 @@ describe('JSON body combinator', () => {
       mk,
     )()
 
-    expect(mock.lastCall()?.[1]).toStrictEqual({
+    expect(arg()).toStrictEqual({
       body: '{"Earth":"Always Has Been"}',
       headers: {
         'Content-Type': 'application/json',
@@ -59,7 +57,7 @@ describe('JSON body combinator', () => {
       mk,
     )()
 
-    expect(mock.lastCall()?.[1]).toStrictEqual({
+    expect(arg()).toStrictEqual({
       body: '{"Earth":"Always Has Been"}',
       headers: {
         'Content-Type': 'application/json',
@@ -76,7 +74,7 @@ describe('JSON body combinator', () => {
       mk,
     )()
 
-    expect(mock.lastCall()?.[1]).toStrictEqual({
+    expect(arg()).toStrictEqual({
       body: '{"Solar":"Never"}',
       headers: {
         'Content-Type': 'application/json',
@@ -98,7 +96,7 @@ describe('Form body combinator', () => {
     const form = new FormData()
     form.set('Earth', 'Always Has Been')
 
-    expect(mock.lastCall()?.[1]).toStrictEqual({
+    expect(arg()).toStrictEqual({
       method: 'POST',
       body: form,
     })
@@ -117,7 +115,7 @@ describe('Form body combinator', () => {
     form.set('Earth', 'Always Has Been')
     form.set('Me', 'Wait')
 
-    expect(mock.lastCall()?.[1]).toStrictEqual({
+    expect(arg()).toStrictEqual({
       method: 'POST',
       body: form,
     })
@@ -133,7 +131,7 @@ describe('Blob body combinator', () => {
       mk,
     )()
 
-    expect(mock.lastCall()?.[1]).toStrictEqual({
+    expect(arg()).toStrictEqual({
       method: 'POST',
       body: new Blob([]),
       headers: {

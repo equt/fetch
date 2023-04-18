@@ -13,6 +13,7 @@ import {
   fromEither,
   left,
   local,
+  map as _map,
 } from 'fp-ts/ReaderTaskEither'
 import { of } from 'fp-ts/IO'
 import type { Lazy } from 'fp-ts/function'
@@ -99,3 +100,11 @@ export const localE = /* #__PURE__ */
         ),
       ),
     )
+
+/**
+ * @category combinators
+ * @since 3.5.0
+ */
+export const map =
+  /* #__PURE__ */
+  <E, A, B>(f: (a: A) => B): Combinator<E, A, E, B> => _map(f)
