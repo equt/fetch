@@ -1,13 +1,14 @@
 /**
  * @since 1.0.0
  */
-import { mapLeft } from 'fp-ts/Either'
+import { mapLeft, left, right } from 'fp-ts/Either'
 import type { Json } from 'fp-ts/Json'
 import { chainEitherKW, chainTaskEitherKW } from 'fp-ts/ReaderTaskEither'
 import { tryCatch } from 'fp-ts/TaskEither'
 import { flow } from 'fp-ts/function'
 
 import type { Errors, Mixed, TypeOf } from 'io-ts'
+import type { ZodTypeAny, ZodError, infer as ZodInfer } from 'zod'
 
 import { bail, Combinator, MapError } from '..'
 import { withHeaders } from './header'
@@ -96,10 +97,13 @@ export function asText<E, F>(
   )
 }
 
+// TODO: remove this function in 5.0
 /**
  * Decode a `Json` type using [`io-ts`](https://github.com/gcanti/io-ts)
  *
  * Using this combinator will require [`io-ts`](https://github.com/gcanti/io-ts) to be installed.
+ *
+ * @deprecated Please use `decodeIO` instead, will be removed in the 5.0
  *
  * @param codeC Extends {@link Mixed}
  * @param mapError An instance of {@link MapError}
@@ -119,4 +123,62 @@ export function decodeAs<E, F, C extends Mixed>(
   mapError: MapError<F, Errors> = bail,
 ): Combinator<E, Json, E | F, TypeOf<C>> {
   return chainEitherKW(flow(codeC.decode, mapLeft(mapError)))
+}
+
+/**
+ * Decode a `Json` type using [`io-ts`](https://github.com/gcanti/io-ts)
+ *
+ * Using this combinator will require [`io-ts`](https://github.com/gcanti/io-ts) to be installed.
+ *
+ * @param codeC Extends {@link Mixed}
+ * @param mapError An instance of {@link MapError}
+ *
+ * @category combinators
+ * @since 4.0.0
+ */
+export function decodeIO<E, F, C extends Mixed>(
+  codeC: C,
+  mapError: MapError<F, Errors>,
+): Combinator<E, Json, E | F, TypeOf<C>>
+export function decodeIO<E, C extends Mixed>(
+  codeC: C,
+): Combinator<E, Json, E, TypeOf<C>>
+export function decodeIO<E, F, C extends Mixed>(
+  codeC: C,
+  mapError: MapError<F, Errors> = bail,
+): Combinator<E, Json, E | F, TypeOf<C>> {
+  return chainEitherKW(flow(codeC.decode, mapLeft(mapError)))
+}
+
+/**
+ * Decode a `Json` type using [`zod`](https://github.com/colinhacks/zod)
+ *
+ * Using this combinator will require [`zod`](https://github.com/colinhacks/zod) to be installed.
+ *
+ * @param codeC Extends {@link ZodTypeAny}
+ * @param mapError An instance of {@link MapError}
+ *
+ * @category combinators
+ * @since 4.0.0
+ */
+export function decodeZod<E, F, C extends ZodTypeAny>(
+  codeC: C,
+  mapError: MapError<F, ZodError>,
+): Combinator<E, Json, E | F, ZodInfer<C>>
+export function decodeZod<E, C extends ZodTypeAny>(
+  codeC: C,
+): Combinator<E, Json, E, ZodInfer<C>>
+export function decodeZod<E, F, C extends ZodTypeAny>(
+  codeC: C,
+  mapError: MapError<F, ZodError> = bail,
+): Combinator<E, Json, E | F, ZodInfer<ZodTypeAny>> {
+  return chainEitherKW(x => {
+    const result = codeC.safeParse(x)
+    switch (result.success) {
+      case true:
+        return right(result.data)
+      case false:
+        return left(mapError(result.error))
+    }
+  })
 }
