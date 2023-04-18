@@ -6,6 +6,7 @@
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "homepage": "https://github.com/equt/fetch",
+  "type": "module",
   "exports": {
     ".": {
       "require": "./dist/index.cjs",
