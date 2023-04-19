@@ -347,3 +347,5 @@ export const runFetchMFlippedPTL = /* #__PURE__ */
     )
 
 export * from './combinators'
+
+export { pipe, flow } from 'fp-ts/function'
