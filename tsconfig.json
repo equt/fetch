@@ -3,6 +3,7 @@
   "compilerOptions": {
     "lib": ["ESNext", "DOM"],
     "types": ["@types/jest"],
-    "incremental": false
+    "incremental": false,
+    "target": "ES2020"
   }
 }
