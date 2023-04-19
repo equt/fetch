@@ -5,7 +5,7 @@ import type { Predicate } from 'fp-ts/Predicate'
 import { pipe } from 'fp-ts/function'
 
 import type { Combinator, MapError } from '..'
-import { guard } from '..'
+import { bail, guard } from '..'
 
 /**
  * Guard the `Response` status code.
@@ -15,9 +15,21 @@ import { guard } from '..'
  *
  * @category combinators
  * @since 1.0.0
+ * @since 4.2.0 A bail version is available
  */
-export const ensureStatus = /* #__PURE__ */ <E, F>(
-  statusIsValid: Predicate<number>,
-  otherwise: MapError<F, Response>,
-): Combinator<E, Response, E | F> =>
-  guard((resp): resp is Response => pipe(resp.status, statusIsValid), otherwise)
+export function ensureStatus<E>(
+  predicate: Predicate<number>,
+): Combinator<E, Response>
+export function ensureStatus<E, F>(
+  predicate: Predicate<number>,
+  mapError: MapError<F, Response>,
+): Combinator<E, Response, E | F>
+export function ensureStatus<E, F>(
+  predicate: Predicate<number>,
+  mapError: MapError<F, Response> = bail,
+): Combinator<E, Response, E | F> {
+  return guard(
+    (resp): resp is Response => pipe(resp.status, predicate),
+    mapError,
+  )
+}
