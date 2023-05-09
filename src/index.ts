@@ -156,7 +156,7 @@ export function mkRequest<E>(
 
       while (r._tag === 'Left') {
         const e = r.left,
-          ds = init[RETRY]?.map(s => s(e, times)).filter(
+          ds = init[RETRY]?.map(s => s(e, times, init)).filter(
             (n): n is number => typeof n === 'number',
           ),
           delay = ds && ds.length > 0 ? Math.max(...ds) : undefined

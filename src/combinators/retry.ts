@@ -7,7 +7,7 @@ import { ExtendedRequestInit, RETRY } from '../internal'
 export type Policy = number | undefined | null
 
 export type Strategy<E> = {
-  (error: E, times: number): Policy
+  (error: E, times: number, init: RequestInit): Policy
 }
 
 export function retry<E, A>(strategy: Strategy<E>): Combinator<E, A> {
