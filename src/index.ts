@@ -3,7 +3,7 @@ import type { TaskEither } from 'fp-ts/TaskEither'
 import type { Either } from 'fp-ts/Either'
 import { match, left, right } from 'fp-ts/Either'
 import { identity, pipe } from 'fp-ts/function'
-import { BASE_URL, ExtendedRequestInit, SIGNAL, U } from './internal'
+import { BASE_URL, ExtendedRequestInit, RETRY, SIGNAL, U } from './internal'
 
 /**
  * [`FetchM`](#fetchm-type-alias) Monad Environment.
@@ -151,11 +151,30 @@ export function mkRequest<E>(
     }
 
     return async () => {
-      const r = f()
+      let r = await f(),
+        times = 0
+
+      while (r._tag === 'Left') {
+        const e = r.left,
+          ds = init[RETRY]?.map(s => s(e, times)).filter(
+            (n): n is number => typeof n === 'number',
+          ),
+          delay = ds && ds.length > 0 ? Math.max(...ds) : undefined
+
+        if (delay === undefined) break
+
+        await new Promise(resolve => setTimeout(resolve, delay)).then(
+          async () => {
+            r = await f()
+            times += 1
+          },
+        )
+      }
 
       delete init[BASE_URL]
       delete init[U]
       delete init[SIGNAL]
+      delete init[RETRY]
 
       return r
     }
