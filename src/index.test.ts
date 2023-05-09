@@ -124,3 +124,11 @@ it('bail should throws parameter as error', () => {
   expect(() => bail(new Error('Wait'))).toThrowError(new Error('Wait'))
   expect(() => bail('Wait')).toThrowError(new Error('Wait'))
 })
+
+it('mkRequest should receive TypeError if the input is invalid URL', async () => {
+  const request = mkRequest(bail)
+
+  await expect(() =>
+    pipe(request, runFetchM('h ttps://example.com'))(),
+  ).rejects.toThrow('TypeError')
+})

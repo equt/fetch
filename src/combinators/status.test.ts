@@ -47,4 +47,22 @@ describe('Status Combinator', () => {
       )(),
     ).toEqual(expect.objectContaining({ _tag: 'Right' }))
   })
+
+  it('should bail', async () => {
+    const mock = jest.fn(() =>
+      Promise.resolve(
+        new Response(null, {
+          status: 400,
+        }),
+      ),
+    )
+
+    await expect(() =>
+      pipe(
+        mkRequest(bail, mock),
+        ensureStatus(n => n < 400),
+        mk,
+      )(),
+    ).rejects.toThrow()
+  })
 })

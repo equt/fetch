@@ -4,10 +4,10 @@
 import { local } from 'fp-ts/ReaderTaskEither'
 import { mapSnd } from 'fp-ts/Tuple'
 
-import type { Combinator, MapError } from '..'
-import { bail } from '..'
+import { bail, Combinator, MapError } from '..'
+import { BASE_URL, ExtendedRequestInit, U } from '../internal'
 
-type MaybeURLLike = URL | string | undefined
+type URLLike = URL | string | undefined
 
 /**
  * Set the base URL for the request.
@@ -19,20 +19,21 @@ type MaybeURLLike = URL | string | undefined
  * @since 1.0.0
  */
 export function withBaseURL<E, F, A>(
-  url: MaybeURLLike,
+  url: URLLike,
   mapError: MapError<F>,
 ): Combinator<E, A, E | F>
-export function withBaseURL<E, A>(url: MaybeURLLike): Combinator<E, A>
+export function withBaseURL<E, A>(url: URLLike): Combinator<E, A>
 export function withBaseURL<E, F, A>(
-  url: MaybeURLLike,
+  url: URLLike,
   mapError: MapError<F> = bail,
 ): Combinator<E, A, E | F> {
   return local(
-    mapSnd(x => ({
-      _BASE_URL: url,
-      _BASE_URL_MAP_ERROR: mapError,
-      ...x,
-    })),
+    mapSnd(
+      (x): ExtendedRequestInit<E | F> => ({
+        [BASE_URL]: [url, mapError],
+        ...x,
+      }),
+    ),
   )
 }
 
@@ -49,24 +50,14 @@ export function withBaseURL<E, F, A>(
  */
 export const withURLSearchParams = /* #__PURE__ */ <E, A>(
   params: Record<string, string>,
-): Combinator<E, A> => {
-  type ExtendedRequestInit = RequestInit & {
-    _URL_SEARCH_PARAMS?: Record<string, string>
-  }
-
-  return local(
-    mapSnd(x => {
-      const { _URL_SEARCH_PARAMS, ...rest } = x as ExtendedRequestInit
-      return {
-        _URL_SEARCH_PARAMS: {
-          ...params,
-          ..._URL_SEARCH_PARAMS,
-        },
-        ...rest,
-      }
+): Combinator<E, A> =>
+  local(
+    mapSnd((x: ExtendedRequestInit<E>): ExtendedRequestInit<E> => {
+      if (!x[U]) x[U] = {}
+      x[U].params = { ...params, ...x[U].params }
+      return x
     }),
   )
-}
 
 /**
  * Set password.
@@ -81,20 +72,14 @@ export const withURLSearchParams = /* #__PURE__ */ <E, A>(
  */
 export const withPassword = /* #__PURE__ */ <E, A>(
   password: string,
-): Combinator<E, A> => {
-  type ExtendedRequestInit = RequestInit & {
-    _URL_PASSWORD?: string
-  }
-
-  return local(
-    mapSnd(x => {
-      return {
-        _URL_PASSWORD: password,
-        ...(x as ExtendedRequestInit),
-      }
+): Combinator<E, A> =>
+  local(
+    mapSnd((x: ExtendedRequestInit<E>): ExtendedRequestInit<E> => {
+      if (!x[U]) x[U] = {}
+      x[U] = { password, ...x[U] }
+      return x
     }),
   )
-}
 
 /**
  * Set username.
@@ -109,20 +94,14 @@ export const withPassword = /* #__PURE__ */ <E, A>(
  */
 export const withUsername = /* #__PURE__ */ <E, A>(
   username: string,
-): Combinator<E, A> => {
-  type ExtendedRequestInit = RequestInit & {
-    _URL_USERNAME?: string
-  }
-
-  return local(
-    mapSnd(x => {
-      return {
-        _URL_USERNAME: username,
-        ...(x as ExtendedRequestInit),
-      }
+): Combinator<E, A> =>
+  local(
+    mapSnd((x: ExtendedRequestInit<E>): ExtendedRequestInit<E> => {
+      if (!x[U]) x[U] = {}
+      x[U] = { username, ...x[U] }
+      return x
     }),
   )
-}
 
 /**
  * Set port.
@@ -137,17 +116,11 @@ export const withUsername = /* #__PURE__ */ <E, A>(
  */
 export const withPort = /* #__PURE__ */ <E, A>(
   port: number | string,
-): Combinator<E, A> => {
-  type ExtendedRequestInit = RequestInit & {
-    _URL_PORT?: number | string
-  }
-
-  return local(
-    mapSnd(x => {
-      return {
-        _URL_PORT: port,
-        ...(x as ExtendedRequestInit),
-      }
+): Combinator<E, A> =>
+  local(
+    mapSnd((x: ExtendedRequestInit<E>): ExtendedRequestInit<E> => {
+      if (!x[U]) x[U] = {}
+      x[U] = { port, ...x[U] }
+      return x
     }),
   )
-}

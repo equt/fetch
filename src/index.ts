@@ -1,9 +1,9 @@
-import { match } from 'fp-ts/Either'
 import type { ReaderTaskEither } from 'fp-ts/ReaderTaskEither'
 import type { TaskEither } from 'fp-ts/TaskEither'
-import { chain, map, right, tryCatch } from 'fp-ts/TaskEither'
-import { snd } from 'fp-ts/Tuple'
-import { identity, pipe, tupled } from 'fp-ts/function'
+import type { Either } from 'fp-ts/Either'
+import { match, left, right } from 'fp-ts/Either'
+import { identity, pipe } from 'fp-ts/function'
+import { BASE_URL, ExtendedRequestInit, SIGNAL, U } from './internal'
 
 /**
  * [`FetchM`](#fetchm-type-alias) Monad Environment.
@@ -60,7 +60,7 @@ export type MapError<E, S = unknown> = (s: S) => E
  * @category error handlers
  * @since 1.0.0
  */
-export const bail: MapError<never> = /* #__PURE__ */ e => {
+export function bail(e: unknown): never {
   if (e instanceof Error) {
     throw e
   } else {
@@ -85,72 +85,6 @@ export type Combinator<E1, A, E2 = E1, B = A> = (
   m: FetchM<E1, A>,
 ) => FetchM<E2, B>
 
-const buildBaseURL = /* #__PURE__ */ <E>(
-  config: Config,
-): TaskEither<E, Config> => {
-  type ExtendedRequestInit = RequestInit & {
-    _BASE_URL: URL | string | undefined
-    _BASE_URL_MAP_ERROR: MapError<E>
-  }
-
-  const [input, init] = config
-
-  if (
-    (init as ExtendedRequestInit)._BASE_URL_MAP_ERROR
-    // N.B. _BASE_URL might be undefined
-  ) {
-    const mapError = (init as ExtendedRequestInit)._BASE_URL_MAP_ERROR,
-      baseURL = (init as ExtendedRequestInit)._BASE_URL
-
-    delete (init as Partial<ExtendedRequestInit>)._BASE_URL_MAP_ERROR
-    delete (init as Partial<ExtendedRequestInit>)._BASE_URL
-
-    return pipe(
-      tryCatch(() => Promise.resolve(new URL(input, baseURL).href), mapError),
-      map<string, Config>(s => [s, init]),
-    )
-  }
-
-  return right(config)
-}
-
-// NOTE This has to be called after the buildBaseURL, since it assume the `input`
-// in the config is always a valid URL.
-const buildURL = /* #__PURE__ */ (config: Readonly<Config>): Config => {
-  type ExtendedRequestInit = RequestInit &
-    Partial<{
-      _URL_SEARCH_PARAMS: Record<string, string>
-      _URL_PASSWORD: string
-      _URL_USERNAME: string
-      _URL_PORT: string | number
-    }>
-
-  const url = new URL(config[0])
-  const init: ExtendedRequestInit = config[1]
-
-  if (init._URL_SEARCH_PARAMS) {
-    url.search = new URLSearchParams(init._URL_SEARCH_PARAMS).toString()
-    delete init._URL_SEARCH_PARAMS
-  }
-
-  if (init._URL_PASSWORD) {
-    url.password = init._URL_PASSWORD
-    delete init._URL_PASSWORD
-  }
-
-  if (init._URL_USERNAME) {
-    url.username = init._URL_USERNAME
-    delete init._URL_USERNAME
-  }
-
-  if (init._URL_PORT) {
-    url.port = init._URL_PORT.toString()
-    delete init._URL_PORT
-  }
-
-  return [url.href, init]
-}
-
 /**
  * Create an instance of [`FetchM`](#fetchm-type-alias) by providing how to map possible errors and optional `fetch` implementation.
  *
@@ -161,50 +95,72 @@ const buildURL = /* #__PURE__ */ (config: Readonly<Config>): Config => {
  * @category constructors
  * @since 1.0.0
  */
-// prettier-ignore
-export const mkRequest = /* #__PURE__ */
-    <E>(mapError: MapError<E>, fetchImpl?: typeof fetch): FetchM<E, Response> =>
-    r =>
-      pipe(
-        buildBaseURL<E>(r),
-        map(buildURL),
-        chain(r =>
-          tryCatch(
-            () => tupled(fetchImpl ?? fetch)(r),
-            e => {
-              // For two controller combinators, a.k.a., withSignal & withTimeout, we could have
-              // two `MapError` passed in. But that is technically not even possible, since the
-              // abortion error is raised only when the `fetch` Promise is getting resolved.
-              // The trick here is we abuse the reader env to pass the `MapError` down, and when
-              // resolving the `fetch` Promise, we search for that special key. So on the user side,
-              // it seems like the error handling part `MapError` is right inside the combinator.
+export function mkRequest<E>(
+  mapError: MapError<E>,
+  fetchImpl?: typeof fetch,
+): FetchM<E, Response> {
+  return ([input, init]: [string, ExtendedRequestInit<E>]) => {
+    async function f(): Promise<Either<E, Response>> {
+      const b = init[BASE_URL],
+        u = init[U],
+        s = init[SIGNAL]
 
-              type ExtendedRequestInit = RequestInit & {
-                _ABORT_MAP_ERROR: MapError<unknown>
-              }
+      let url: URL
+      if (b) {
+        try {
+          url = new URL(input, b[0])
+        } catch (e) {
+          return left(b[1](e))
+        }
+      } else {
+        try {
+          url = new URL(input)
+        } catch (e) {
+          return left(mapError(e))
+        }
+      }
 
-              const init = snd(r)
-              if (
-                // If the key exists, indicating user has used either of two controller combinators
-                (init as ExtendedRequestInit)._ABORT_MAP_ERROR &&
-                // and note that the DOMException error only raises on abortion.
-                e instanceof DOMException &&
-                e.name === 'AbortError'
-              ) {
-                const mapError = (init as ExtendedRequestInit)._ABORT_MAP_ERROR
+      // TODO: Take a look at the specification to see if it is possible to throw
+      if (u) {
+        if (u.params) {
+          url.search = new URLSearchParams(u.params).toString()
+        }
 
-                delete (init as Partial<ExtendedRequestInit>)._ABORT_MAP_ERROR
+        if (u.password) {
+          url.password = u.password
+        }
 
-                // We cast the error into `E` to make the compiler happy, since we have set the correct
-                // error type in the combinator itself, i.e., the error type union must contain the right
-                // type.
-                return mapError(e) as E
-              }
-              return mapError(e)
-            },
-          ),
-        ),
-      )
+        if (u.username) {
+          url.username = u.username
+        }
+
+        if (u.port) {
+          url.port = u.port.toString()
+        }
+      }
+
+      try {
+        return right(await (fetchImpl ?? fetch)(url.href, init))
+      } catch (e) {
+        if (s && e instanceof DOMException && e.name === 'AbortError') {
+          return left(s(e))
+        }
+
+        return left(mapError(e))
+      }
+    }
+
+    return async () => {
+      const r = f()
+
+      delete init[BASE_URL]
+      delete init[U]
+      delete init[SIGNAL]
+
+      return r
+    }
+  }
+}
 
 /**
  * A special instance of [`FetchM`](#fetchm-type-alias) which always [`bail`](#bail)s errors and utilizes global `fetch`.

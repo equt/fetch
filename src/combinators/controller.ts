@@ -6,6 +6,7 @@ import { mapSnd } from 'fp-ts/Tuple'
 import { pipe } from 'fp-ts/function'
 
 import { bail, Combinator, MapError } from '..'
+import { ExtendedRequestInit, SIGNAL } from '../internal'
 
 /**
  * Set an abort signal.
@@ -29,9 +30,10 @@ export function withSignal<E, A, F>(
   signal: AbortSignal,
   mapError: MapError<F> = bail,
 ): Combinator<E, A, E | F> {
-  // How could this even be possible? See the impl details of `mkRequest`
   return local(
-    mapSnd(x => ({ signal: signal, _ABORT_MAP_ERROR: mapError, ...x })),
+    mapSnd(
+      (x): ExtendedRequestInit<F> => ({ signal, [SIGNAL]: mapError, ...x }),
+    ),
   )
 }
 
