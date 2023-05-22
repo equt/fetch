@@ -124,3 +124,25 @@ export const withPort = /* #__PURE__ */ <E, A>(
       return x
     }),
   )
+
+/**
+ * Set redirection.
+ *
+ * @param redirect {@link RequestRedirect}
+ *
+ * @category combinators
+ * @since 4.8.0
+ */
+// TODO: Add support for `error`
+export function withRedirection<E, A>(redirect: 'manual'): Combinator<E, A>
+export function withRedirection<E, A>(redirect: 'follow'): Combinator<E, A>
+export function withRedirection<E, A>(
+  redirect: RequestRedirect,
+): Combinator<E, A, E> {
+  return local(
+    mapSnd(x => {
+      x.redirect = redirect
+      return x
+    }),
+  )
+}

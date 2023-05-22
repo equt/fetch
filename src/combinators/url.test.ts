@@ -1,11 +1,12 @@
 import { pipe } from 'fp-ts/function'
-import { left } from 'fp-ts/Either'
+import { left, right } from 'fp-ts/Either'
 
 import { bail, mkRequest, runFetchM } from '..'
 import {
   withBaseURL,
   withPassword,
   withPort,
+  withRedirection,
   withURLSearchParams,
   withUsername,
 } from './url'
@@ -170,5 +171,27 @@ describe('URL Port Combinator', () => {
     await pipe(request, withPort(442), runFetchM('https://example.com'))()
 
     expect(mock.mock.lastCall).toEqual(['https://example.com:442/', {}])
+  })
+})
+
+describe('Redirection Combinator', () => {
+  const response = new Response(null, {
+    status: 301,
+    headers: {
+      Location: 'https://example.com',
+    },
+  })
+
+  it('should not follow redirection', async () => {
+    const mock = jest.fn().mockResolvedValue(response),
+      request = mkRequest(bail, mock)
+
+    await expect(
+      pipe(
+        request,
+        withRedirection('follow'),
+        runFetchM('https://example.com'),
+      )(),
+    ).resolves.toEqual(right(response))
   })
 })

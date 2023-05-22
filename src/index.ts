@@ -3,7 +3,14 @@ import type { TaskEither } from 'fp-ts/TaskEither'
 import type { Either } from 'fp-ts/Either'
 import { match, left, right } from 'fp-ts/Either'
 import { identity, pipe } from 'fp-ts/function'
-import { BASE_URL, ExtendedRequestInit, RETRY, SIGNAL, U } from './internal'
+import {
+  BASE_URL,
+  ExtendedRequestInit,
+  REDIRECT,
+  RETRY,
+  SIGNAL,
+  U,
+} from './internal'
 
 /**
  * [`FetchM`](#fetchm-type-alias) Monad Environment.
@@ -175,6 +182,7 @@ export function mkRequest<E>(
       delete init[U]
       delete init[SIGNAL]
       delete init[RETRY]
+      delete init[REDIRECT]
 
       return r
     }

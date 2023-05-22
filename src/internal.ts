@@ -9,6 +9,8 @@ export const SIGNAL = Symbol('SG')
 
 export const RETRY = Symbol('R')
 
+export const REDIRECT = Symbol('RD')
+
 export type ExtendedRequestInit<E> = RequestInit & {
   [BASE_URL]?: [URL | string | undefined, MapError<E>]
   [U]?: {
@@ -19,4 +21,5 @@ export type ExtendedRequestInit<E> = RequestInit & {
   }
   [SIGNAL]?: MapError<E>
   [RETRY]?: Array<Strategy<E>>
+  [REDIRECT]?: MapError<E, Response>
 }
