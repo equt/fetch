@@ -170,3 +170,15 @@ export function withJSON<E, A>(
  */
 export const withBlob = /* #__PURE__ */ <E, A>(blob: Blob): Combinator<E, A> =>
   local(mapSnd(x => ({ body: blob, ...x })))
+
+/**
+ * Set the request body as Blob.
+ *
+ * @param stream Data in {@link ReadableStream}
+ *
+ * @category combinators
+ * @since 4.8.0
+ */
+export const withReadableStream = /* #__PURE__ */ <E, A>(
+  stream: ReadableStream<unknown>,
+): Combinator<E, A> => local(mapSnd(x => ({ body: stream, ...x })))

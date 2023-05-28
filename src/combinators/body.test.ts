@@ -1,6 +1,6 @@
 import { pipe } from 'fp-ts/function'
 
-import { bail, mkRequest, runFetchM } from '..'
+import { bail, mkRequest, runFetchM, withReadableStream } from '..'
 import { mkFormData, withBlob, withForm, withJSON } from './body'
 import { withMethod } from './method'
 
@@ -129,6 +129,25 @@ describe('Blob body combinator', () => {
     expect(arg()).toStrictEqual({
       method: 'POST',
       body: new Blob([]),
+    })
+  })
+})
+
+describe('Stream body combinator', () => {
+  it('should encode Stream', async () => {
+    const response = new Response('FOO')
+
+    await pipe(
+      request,
+      withMethod('POST'),
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      withReadableStream(response.body!),
+      mk,
+    )()
+
+    expect(arg()).toStrictEqual({
+      method: 'POST',
+      body: response.body,
     })
   })
 })
