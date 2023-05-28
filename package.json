@@ -1,6 +1,6 @@
 {
   "name": "@equt/fetch",
-  "version": "4.7.2",
+  "version": "4.8.0",
   "license": "MIT",
   "main": "./dist/index.cjs",
   "module": "./dist/index.mjs",
