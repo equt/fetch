@@ -168,7 +168,7 @@ export function withJSON<E, A>(
  * @category combinators
  * @since 1.0.0
  */
-export const withBlob = /* #__PURE__ */ <E extends Error, A>(
+export const withBlob = /* #__PURE__ */ <E, A>(
   blob: Blob,
   contentType: string,
 ): Combinator<E, A> =>
