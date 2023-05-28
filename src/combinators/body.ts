@@ -163,16 +163,10 @@ export function withJSON<E, A>(
  * Set the request body as Blob.
  *
  * @param blob Data in {@link Blob}
- * @param contentType MIME
  *
  * @category combinators
  * @since 1.0.0
+ * @since 4.8.0 - `Content-Type` should be set using the `withHeaders` combinator
  */
-export const withBlob = /* #__PURE__ */ <E, A>(
-  blob: Blob,
-  contentType: string,
-): Combinator<E, A> =>
-  flow(
-    withHeaders({ 'Content-Type': contentType }),
-    local(mapSnd(x => ({ body: blob, ...x }))),
-  )
+export const withBlob = /* #__PURE__ */ <E, A>(blob: Blob): Combinator<E, A> =>
+  local(mapSnd(x => ({ body: blob, ...x })))

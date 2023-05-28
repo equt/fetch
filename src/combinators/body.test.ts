@@ -124,19 +124,11 @@ describe('Form body combinator', () => {
 
 describe('Blob body combinator', () => {
   it('should encode Blob', async () => {
-    await pipe(
-      request,
-      withMethod('POST'),
-      withBlob(new Blob([]), 'application/pdf'),
-      mk,
-    )()
+    await pipe(request, withMethod('POST'), withBlob(new Blob([])), mk)()
 
     expect(arg()).toStrictEqual({
       method: 'POST',
       body: new Blob([]),
-      headers: {
-        'Content-Type': 'application/pdf',
-      },
     })
   })
 })
