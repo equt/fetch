@@ -136,17 +136,17 @@ export function decodeAs<E, F, C extends Mixed>(
  * @category combinators
  * @since 4.0.0
  */
-export function decodeIO<E, F, C extends Mixed>(
+export function decodeIO<E, F, C extends Mixed, J extends Json>(
   codeC: C,
   mapError: MapError<F, Errors>,
-): Combinator<E, Json, E | F, IOTypeOf<C>>
-export function decodeIO<E, C extends Mixed>(
+): Combinator<E, J, E | F, IOTypeOf<C>>
+export function decodeIO<E, C extends Mixed, J extends Json>(
   codeC: C,
-): Combinator<E, Json, E, IOTypeOf<C>>
-export function decodeIO<E, F, C extends Mixed>(
+): Combinator<E, J, E, IOTypeOf<C>>
+export function decodeIO<E, F, C extends Mixed, J extends Json>(
   codeC: C,
   mapError: MapError<F, Errors> = bail,
-): Combinator<E, Json, E | F, IOTypeOf<C>> {
+): Combinator<E, J, E | F, IOTypeOf<C>> {
   return chainEitherKW(flow(codeC.decode, mapLeft(mapError)))
 }
 
@@ -161,17 +161,17 @@ export function decodeIO<E, F, C extends Mixed>(
  * @category combinators
  * @since 4.0.0
  */
-export function decodeZod<E, F, C extends ZodTypeAny>(
+export function decodeZod<E, F, C extends ZodTypeAny, J extends Json>(
   codeC: C,
   mapError: MapError<F, ZodError>,
-): Combinator<E, Json, E | F, ZodTypeOf<C>>
-export function decodeZod<E, C extends ZodTypeAny>(
+): Combinator<E, J, E | F, ZodTypeOf<C>>
+export function decodeZod<E, C extends ZodTypeAny, J extends Json>(
   codeC: C,
-): Combinator<E, Json, E, ZodTypeOf<C>>
-export function decodeZod<E, F, C extends ZodTypeAny>(
+): Combinator<E, J, E, ZodTypeOf<C>>
+export function decodeZod<E, F, C extends ZodTypeAny, J extends Json>(
   codeC: C,
   mapError: MapError<F, ZodError> = bail,
-): Combinator<E, Json, E | F, ZodTypeOf<ZodTypeAny>> {
+): Combinator<E, J, E | F, ZodTypeOf<ZodTypeAny>> {
   return chainEitherKW(x => {
     const result = codeC.safeParse(x)
     switch (result.success) {
