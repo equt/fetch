@@ -5,7 +5,7 @@ import { mapLeft, left, right } from 'fp-ts/Either'
 import type { Json } from 'fp-ts/Json'
 import { chainEitherKW, chainTaskEitherKW } from 'fp-ts/ReaderTaskEither'
 import { tryCatch } from 'fp-ts/TaskEither'
-import { flow } from 'fp-ts/function'
+import { flow, pipe } from 'fp-ts/function'
 
 import type { Errors, Mixed, TypeOf as IOTypeOf } from 'io-ts'
 import type { ZodTypeAny, ZodError, TypeOf as ZodTypeOf } from 'zod'
@@ -138,16 +138,21 @@ export function decodeAs<E, F, C extends Mixed>(
  */
 export function decodeIO<E, F, C extends Mixed, J extends Json>(
   codeC: C,
-  mapError: MapError<F, Errors>,
+  mapError: MapError<F, Errors, J>,
 ): Combinator<E, J, E | F, IOTypeOf<C>>
 export function decodeIO<E, C extends Mixed, J extends Json>(
   codeC: C,
 ): Combinator<E, J, E, IOTypeOf<C>>
 export function decodeIO<E, F, C extends Mixed, J extends Json>(
   codeC: C,
-  mapError: MapError<F, Errors> = bail,
+  mapError: MapError<F, Errors, J> = bail,
 ): Combinator<E, J, E | F, IOTypeOf<C>> {
-  return chainEitherKW(flow(codeC.decode, mapLeft(mapError)))
+  return chainEitherKW(x =>
+    pipe(
+      codeC.decode(x),
+      mapLeft(e => mapError(e, x)),
+    ),
+  )
 }
 
 /**
@@ -163,14 +168,14 @@ export function decodeIO<E, F, C extends Mixed, J extends Json>(
  */
 export function decodeZod<E, F, C extends ZodTypeAny, J extends Json>(
   codeC: C,
-  mapError: MapError<F, ZodError>,
+  mapError: MapError<F, ZodError, J>,
 ): Combinator<E, J, E | F, ZodTypeOf<C>>
 export function decodeZod<E, C extends ZodTypeAny, J extends Json>(
   codeC: C,
 ): Combinator<E, J, E, ZodTypeOf<C>>
 export function decodeZod<E, F, C extends ZodTypeAny, J extends Json>(
   codeC: C,
-  mapError: MapError<F, ZodError> = bail,
+  mapError: MapError<F, ZodError, J> = bail,
 ): Combinator<E, J, E | F, ZodTypeOf<ZodTypeAny>> {
   return chainEitherKW(x => {
     const result = codeC.safeParse(x)
@@ -178,7 +183,7 @@ export function decodeZod<E, F, C extends ZodTypeAny, J extends Json>(
       case true:
         return right(result.data)
       case false:
-        return left(mapError(result.error))
+        return left(mapError(result.error, x))
     }
   })
 }

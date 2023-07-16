@@ -55,7 +55,7 @@ export type InspectReturn<M> = M extends FetchM<unknown, infer A> ? A : never
  * @category types
  * @since 1.0.0
  */
-export type MapError<E, S = unknown> = (s: S) => E
+export type MapError<E, S = unknown, C = undefined> = (s: S, c?: C) => E
 
 /**
  * A built-in instance for [`MapError`](#maperror-type-alias).
