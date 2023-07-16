@@ -64,12 +64,14 @@ describe('Header combinator', () => {
     await pipe(
       request,
       withHeaders({ Authorization: 'BEARER ALWAYS_HAS_BEEN' }),
+      withHeaders({ Accept: 'application/json' }),
       mk,
     )()
 
     expect(arg()).toStrictEqual({
       headers: {
         Authorization: 'BEARER ALWAYS_HAS_BEEN',
+        Accept: 'application/json',
       },
     })
   })

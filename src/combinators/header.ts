@@ -60,4 +60,9 @@ export const merge = /* #__PURE__ */ (
 export const withHeaders = /* #__PURE__ */ <E, A>(
   headers: HeadersInit,
 ): Combinator<E, A> =>
-  local(mapSnd(x => ({ headers: merge(headers, x.headers ?? {}), ...x })))
+  local(
+    mapSnd(({ headers: original, ...rest }) => ({
+      headers: merge(headers, original ?? {}),
+      ...rest,
+    })),
+  )
